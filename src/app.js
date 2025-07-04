@@ -1,9 +1,32 @@
 const express=require('express');
 
 const app=express();
+const {authAdmin,authUser}=require('./middleware/auth');
 
-//writing multiple request handlers
-//app.use("/route",rh1,rh2,rh3)
+app.use('/admin',authAdmin);
+
+
+app.get('/user/login',(req,res)=>{
+    res.send('user logged in ');
+}
+);
+
+app.get('/user',authUser
+);
+
+app.get('/user/getdata',(req,res)=>{
+    res.send('user data fetched for user');
+}
+);
+app.get('/admin/getdata',(req,res)=>{
+    res.send('user data fetched');
+}
+);
+
+app.get('/admin/deleteUser',(req,res)=>{
+    res.send('User is deleted');
+}
+);
 app.use("/user",(req,res,next)=>{  //responds to both get and post
     console.log("request handler1");
     //res.send("Response 1");
