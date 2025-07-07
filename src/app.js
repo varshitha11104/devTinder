@@ -1,43 +1,40 @@
 const express=require('express');
 
 const app=express();
-const {authAdmin,authUser}=require('./middleware/auth');
+const connectDB=require('./config/database');
+const User=require('./models/user');
+app.use(express.json());
 
-app.use('/admin',authAdmin);
+app.post('/signup',async (req,res)=>{
+     //creating a new instance of the user model
+    const user=new User({
+        firstName:'ms',
+        lastName:'Dhoni',
+        emailId:'dhoni@gmail.com',
+        password:'dhoni@123'
+    });
+    await user.save();
+    res.send("user created successfully");
+   
+});
 
+app.get('/user',async (req,res)=>
+{
+   // const userEmail=req.body.emailId;
+    try{ 
+        const users=await User.findOne({});
+        res.send(users);
+    }catch(err){
+        res.status(400).send("Something went wrong",err.message);
+    }
+});
 
-app.get('/user/login',(req,res)=>{
-    res.send('user logged in ');
-}
-);
-
-app.get('/user',authUser
-);
-
-app.get('/user/getdata',(req,res)=>{
-    res.send('user data fetched for user');
-}
-);
-app.get('/admin/getdata',(req,res)=>{
-    res.send('user data fetched');
-}
-);
-
-app.get('/admin/deleteUser',(req,res)=>{
-    res.send('User is deleted');
-}
-);
-app.use("/user",(req,res,next)=>{  //responds to both get and post
-    console.log("request handler1");
-    //res.send("Response 1");
-    next();
-},
-(req,res)=>{
-    console.log("request handler 2");  //this will also execute while next() called
-    res.send("response 2"); //shows error because tcp connection got closed after sending first reponse
-}
-);
-
-app.listen(3000,()=>{
+connectDB().then(()=>{
+    console.log("database connection is established");
+    app.listen(3000,()=>{
     console.log('server is listening at 3000...');
 });
+}).catch((err)=>{
+    console.error("Database cannot be connected",err.message);
+});
+
