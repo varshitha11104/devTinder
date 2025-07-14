@@ -1,17 +1,88 @@
 const express=require('express');
-
-const app=express();
 const connectDB=require('./config/database');
 const User=require('./models/user');
+const{validateSignUp}=require("./utils/validation");
+const bcrypt=require('bcrypt');
+const cookieParser=require('cookie-parser');
+const jwt=require('jsonwebtoken');  
+
+const app=express();
 app.use(express.json());
+app.use(cookieParser());
+
+app.post('/login',async (req,res)=>{
+
+    try{
+        const {emailId,password} =req.body;
+
+        const user=await User.findOne({emailId:emailId});
+        if(!user){
+            throw new Error("Invalid credentials");
+        }
+        const isPasswordValid = await bcrypt.compare(password,user.password);
+        if(isPasswordValid){
+
+            //create a jwt token 
+            const token = jwt.sign({_id:user._id},"devTinder");
+            //send cookie to the user
+            res.cookie("token",token);
+            res.send("User Login successfull");
+        }
+        else{
+           throw new Error("Invalid credentials");
+        }
+    }catch(err){
+        res.status(400).send("ERROR : " + err.message);
+    }
+});
+
+app.get('/profile',async (req,res)=>{
+    try{
+        const cookies=req.cookies;
+    
+        const {token}=cookies;
+        if(!token){
+            throw new Error("Invalid Token");
+        }
+
+        //validate my token
+        const decodedMessage=jwt.verify(token,'devTinder');
+        const { _id }=decodedMessage;
+        
+        const user = await User.findById({_id});
+        if(!user){
+          throw new Error("User does not exist");
+        }
+        res.send(user);
+    }catch(err){
+        res.status(400).send("ERROR : " + err.message);
+    }
+});
 
 app.post('/signup',async (req,res)=>{
      //creating a new instance of the user model
-     const userData=req.body
-    const user=new User(userData
-    );
-    await user.save();
-    res.send("user created successfully");
+     try{
+        //validation of data
+        validateSignUp(req);
+
+        //encrypting the password
+        const {firstName,lastName,emailId,password} =req.body;
+        const passwordHash= await bcrypt.hash(password,10);
+
+
+        //creating a instance of user model
+        const user=new User({
+            firstName,
+            lastName,
+            emailId,
+            password:passwordHash
+        });
+        await user.save();
+        res.send("user created successfully");
+     }catch(err){
+        res.status(400).send("ERROR:" , err.message);
+     }
+    
    
 });
 
